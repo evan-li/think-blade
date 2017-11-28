@@ -1,15 +1,11 @@
 {
-    "name": "terranc/think-blade",
+    "name": "evan-li/think-blade",
     "description": "think blade view engine",
     "license": "Apache2",
     "authors": [
-        {
-            "name": "terranc",
-            "email": "terran.chao@lookfeel.co"
-        }
     ],
     "support": {
-        "issues": "https://github.com/terranc/think-blade/issues"
+        "issues": "https://github.com/evan-li/think-blade/issues"
     },
     "require": {
         "php": ">=5.4.0",

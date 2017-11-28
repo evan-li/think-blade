@@ -8,19 +8,18 @@
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
-
 namespace think\view\driver;
-
 use think\App;
 use think\exception\TemplateNotFoundException;
 use think\Loader;
 use think\Log;
 use think\Request;
-use terranc\Blade\Compilers\BladeCompiler;
-use terranc\Blade\Engines\CompilerEngine;
-use terranc\Blade\FileViewFinder;
-use terranc\Blade\Factory;
-
+use Xiaoler\Blade\Compilers\BladeCompiler;
+use Xiaoler\Blade\Engines\CompilerEngine;
+use Xiaoler\Blade\Engines\EngineResolver;
+use Xiaoler\Blade\Filesystem;
+use Xiaoler\Blade\FileViewFinder;
+use Xiaoler\Blade\Factory;
 class Blade
 {
     // 模板引擎实例
@@ -45,33 +44,27 @@ class Blade
     {
         $this->config($config);
     }
-
-
     private function boot($config = []) {
         $this->config = array_merge($this->config, $config);
         if (empty($this->config['view_path'])) {
             $this->config['view_path'] = App::$modulePath . 'view' . DS;
         }
-        if ($this->config['cache']['cache_subdir']) {
-            // 使用子目录
-            $this->config['view_cache_path'] = $this->config['view_cache_path'] . DS . substr($this->config['view_cache_path'], 0, 2) . DS . substr($this->config['view_cache_path'], 2);
-        }
-        if ($this->options['cache']['prefix']) {
-            $name = $this->config['cache']['prefix'] . DS . $name;
-        }
 
-        $compiler = new BladeCompiler($this->config['view_cache_path'], $this->config['tpl_cache']);
-        $compiler->setContentTags($this->config['tpl_begin'], $this->config['tpl_end'], true);
-        $compiler->setContentTags($this->config['tpl_begin'], $this->config['tpl_end'], false);
-        $compiler->setRawTags($this->config['tpl_raw_begin'], $this->config['tpl_raw_end'], false);
-
-        $engine = new CompilerEngine($compiler);
-        $finder = new FileViewFinder([$this->config['view_path']], [$this->config['view_suffix'], 'tpl']);
-
+        $file = new Filesystem();
+        $compiler = new BladeCompiler($file, $this->config['view_cache_path']);
+//        $compiler->setContentTags($this->config['tpl_begin'], $this->config['tpl_end'], true);
+//        $compiler->setContentTags($this->config['tpl_begin'], $this->config['tpl_end'], false);
+//        $compiler->setRawTags($this->config['tpl_raw_begin'], $this->config['tpl_raw_end'], false);
+//        $engine = new CompilerEngine($compiler);
+        $finder = new FileViewFinder($file, [$this->config['view_path']], [$this->config['view_suffix'], 'tpl']);
+//        $finder = new FileViewFinder([$this->config['view_path']], [$this->config['view_suffix'], 'tpl']);
+        $resolver = new EngineResolver;
+        $resolver->register('blade', function () use ($compiler) {
+            return new CompilerEngine($compiler);
+        });
         // 实例化 Factory
-        $this->template = new Factory($engine, $finder);
+        $this->template = new Factory($resolver, $finder);
     }
-
     /**
      * 检测是否存在模板文件
      * @access public
@@ -86,7 +79,6 @@ class Blade
         }
         return is_file($template);
     }
-
     /**
      * 渲染模板文件
      * @access public
@@ -111,7 +103,6 @@ class Blade
         App::$debug && Log::record('[ VIEW ] ' . $template . ' [ ' . var_export(array_keys($data), true) . ' ]', 'info');
         echo $this->template->file($template, $data, $mergeData)->render();
     }
-
     /**
      * 渲染模板内容
      * @access public
@@ -126,7 +117,6 @@ class Blade
         $this->config($config);
         return $this->template->make($template, $data, $mergeData)->render();
     }
-
     /**
      * 自动定位模板文件
      * @access private
@@ -149,7 +139,6 @@ class Blade
         } else {
             $path = isset($module) ? APP_PATH . $module . DS . 'view' . DS : $this->config['view_path'];
         }
-
         $depr = $this->config['view_depr'];
         if (0 !== strpos($template, '/')) {
             $template   = str_replace(['/', ':'], $depr, $template);
@@ -167,7 +156,6 @@ class Blade
         }
         return $path . ltrim($template, '/') . '.' . ltrim($this->config['view_suffix'], '.');
     }
-
     /**
      * 配置或者获取模板引擎参数
      * @access private
@@ -186,7 +174,6 @@ class Blade
         }
         $this->boot();
     }
-
     public function __call($method, $params)
     {
         return call_user_func_array([$this->template, $method], $params);

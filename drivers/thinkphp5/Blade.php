@@ -173,6 +173,11 @@ class Blade
             $this->config[$name]   = $value;
         }
         $this->boot();
+
+        // 检查模板缓存目录是否存在, 不存在则创建
+        if(!is_dir($this->config['view_cache_path'])){
+            @mkdir($this->config['view_cache_path']);
+        }
     }
     public function __call($method, $params)
     {

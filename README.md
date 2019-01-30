@@ -2,30 +2,32 @@
 Blade template engine with thinkphp 5. (component & slot support)
 
 # Installation
-composer require terranc/think-blade
+```
+composer require evan-li/think-blade
+```
 
-conig.php:
+### 配置
+template.php:
 ```php
-'template'               => [
-        // 模板引擎类型 支持 php think 支持扩展
-        'type'         => 'Blade',
-        // 模板路径
-        'view_path'    => '',
-        // 模板后缀
-        'view_suffix'  => 'blade.php',
-        // 模板文件名分隔符
-        'view_depr'    => DS,
-        // 模板引擎普通标签开始标记
-        'tpl_begin'    => '{{',
-        // 模板引擎普通标签结束标记
-        'tpl_end'      => '}}',
-        'tpl_raw_begin'    => '{!!',
-        'tpl_raw_end'    => '{!!',
-        // 标签库标签开始标记
-        'taglib_begin' => '{',
-        // 标签库标签结束标记
-        'taglib_end'   => '}',
-    ],
+return [
+
+    // 模板引擎类型 支持 php think 支持扩展
+    'type'         => 'Blade',
+    // 视图基础目录（集中式）
+    'view_base'   => '',
+    // 是否开启模板编译缓存,设为false则每次都会重新编译
+    'tpl_cache'          => true,
+    // 模板起始路径
+    'view_path'   => '',
+    'tpl_begin'   => '{{',
+    'tpl_end'   => '}}',
+    'tpl_raw_begin'   => '{!!',
+    'tpl_raw_end'   => '!!}',
+    'view_cache_path'   =>  Env::get('runtime_path') . 'temp' . DIRECTORY_SEPARATOR, // 模板缓存目录
+    // 模板文件后缀
+    'view_suffix' => 'blade.php',
+
+];
 ```
 
 # Usage

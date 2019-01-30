@@ -11,9 +11,10 @@
 namespace think\view\driver;
 use think\App;
 use think\exception\TemplateNotFoundException;
+use think\facade\Env;
+use think\facade\Log;
+use think\facade\Request;
 use think\Loader;
-use think\Log;
-use think\Request;
 use Xiaoler\Blade\Compilers\BladeCompiler;
 use Xiaoler\Blade\Engines\CompilerEngine;
 use Xiaoler\Blade\Engines\EngineResolver;
@@ -26,6 +27,19 @@ class Blade
     private $template;
     // 模板引擎参数
     protected $config = [
+//        // 默认模板渲染规则 1 解析为小写+下划线 2 全部转换小写
+//        'auto_rule'   => 1,
+//        // 视图基础目录（集中式）
+//        'view_base'   => '',
+//        // 模板起始路径
+//        'view_path'   => '',
+//        // 模板文件后缀
+//        'view_suffix' => 'html',
+//        // 模板文件名分隔符
+//        'view_depr'   => DIRECTORY_SEPARATOR,
+//        // 是否开启模板编译缓存,设为false则每次都会重新编译
+//        'tpl_cache'   => true,
+
         // 视图基础目录（集中式）
         'view_base'   => '',
         // 是否开启模板编译缓存,设为false则每次都会重新编译
@@ -36,18 +50,27 @@ class Blade
         'tpl_end'   => '}}',
         'tpl_raw_begin'   => '{!!',
         'tpl_raw_end'   => '!!}',
-        'view_cache_path'   => RUNTIME_PATH . 'temp' . DS, // 模板缓存目录
+//        'view_cache_path'   =>  Env::get('runtime_path') . 'temp' . DIRECTORY_SEPARATOR, // 模板缓存目录
         // 模板文件后缀
         'view_suffix' => 'blade.php',
     ];
-    public function __construct($config = [])
+    public function __construct(App $app, $config = [])
     {
+        $this->app    = $app;
         $this->config($config);
     }
     private function boot($config = []) {
         $this->config = array_merge($this->config, $config);
         if (empty($this->config['view_path'])) {
-            $this->config['view_path'] = App::$modulePath . 'view' . DS;
+            $this->config['view_path'] = $this->app->getModulePath() . 'view' . DIRECTORY_SEPARATOR;
+        }
+
+        if (empty($this->config['view_cache_path'])) {
+            $this->config['view_cache_path'] = Env::get('runtime_path') . 'temp' . DIRECTORY_SEPARATOR;
+        }
+        // 检查模板缓存目录是否存在, 不存在则创建
+        if(!is_dir($this->config['view_cache_path'])){
+            @mkdir($this->config['view_cache_path']);
         }
 
         $file = new Filesystem();
@@ -100,7 +123,7 @@ class Blade
             throw new TemplateNotFoundException('template not exists:' . $template, $template);
         }
         // 记录视图信息
-        App::$debug && Log::record('[ VIEW ] ' . $template . ' [ ' . var_export(array_keys($data), true) . ' ]', 'info');
+        $this->app->debug && Log::record('[ VIEW ] ' . $template . ' [ ' . var_export(array_keys($data), true) . ' ]', 'info');
         echo $this->template->file($template, $data, $mergeData)->render();
     }
     /**
@@ -135,9 +158,9 @@ class Blade
         if ($this->config['view_base']) {
             // 基础视图目录
             $module = isset($module) ? $module : $request->module();
-            $path   = $this->config['view_base'] . ($module ? $module . DS : '');
+            $path   = $this->config['view_base'] . ($module ? $module . DIRECTORY_SEPARATOR : '');
         } else {
-            $path = isset($module) ? APP_PATH . $module . DS . 'view' . DS : $this->config['view_path'];
+            $path = isset($module) ? Env::get('app_path') . $module . DIRECTORY_SEPARATOR . 'view' . DIRECTORY_SEPARATOR : $this->config['view_path'];
         }
         $depr = $this->config['view_depr'];
         if (0 !== strpos($template, '/')) {
@@ -146,9 +169,9 @@ class Blade
             if ($controller) {
                 if ('' == $template) {
                     // 如果模板文件名为空 按照默认规则定位
-                    $template = str_replace('.', DS, $controller) . $depr . $request->action();
+                    $template = str_replace('.', DIRECTORY_SEPARATOR, $controller) . $depr . $request->action();
                 } elseif (false === strpos($template, $depr)) {
-                    $template = str_replace('.', DS, $controller) . $depr . $template;
+                    $template = str_replace('.', DIRECTORY_SEPARATOR, $controller) . $depr . $template;
                 }
             }
         } else {
@@ -174,10 +197,6 @@ class Blade
         }
         $this->boot();
 
-        // 检查模板缓存目录是否存在, 不存在则创建
-        if(!is_dir($this->config['view_cache_path'])){
-            @mkdir($this->config['view_cache_path']);
-        }
     }
     public function __call($method, $params)
     {
